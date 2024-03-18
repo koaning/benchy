@@ -23,7 +23,7 @@ def download_and_open_url(url:str, name:str, data_home:Path, force:bool=False, c
             pl.read_csv(csv_path).pipe(cleanup).write_parquet(pq_path)
             Path(csv_path).unlink()
         elif url.endswith(".parquet"):
-            tmp_path = f"temp-{pq_path}"
+            tmp_path = pq_path.parent / f"temp-{pq_path.parts[-1]}"
             urllib.request.urlretrieve(url, tmp_path)
             pl.read_parquet(tmp_path).pipe(cleanup).write_parquet(pq_path)
             Path(tmp_path).unlink()

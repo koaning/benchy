@@ -126,6 +126,3 @@ def fetch_smoking(return_X_y=False, data_home=None, force=False):
         force=force,
         target_col="outcome",
         cleanup=cleanup)
-
-if __name__ == "__main__":
-    print(fetch_smoking())
