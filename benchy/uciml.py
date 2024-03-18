@@ -48,7 +48,8 @@ def fetch_dry_bean(return_X_y=False, data_home=None, force=False):
         return_X_y=return_X_y,
         data_home=data_home,
         force=force,
-        target_col="class")
+        target_col="class"
+    )
 
 
 if __name__ == "__main__":
