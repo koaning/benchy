@@ -93,6 +93,10 @@ METADATA = {
         "target_col": "MedHouseVal",
         "task": "regression"
     },
+    "s2e9": {
+        "target_col": "num_sold", 
+        "task": "regression"
+    }
 }
 
 def fetch_playground_series(season, episode, return_X_y=False, data_home=None, force=False, cleanup=lambda d: d.drop("id")):
