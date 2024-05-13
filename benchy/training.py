@@ -1,8 +1,10 @@
+import polars as pl
 from sklearn.model_selection import KFold
 from skrub import TableVectorizer
 import time
 
 from benchy.kaggle import METADATA, fetch_playground_series
+from benchy.estimators import ColumnDropper
 from lightgbm import LGBMClassifier, LGBMRegressor
 from xgboost import XGBClassifier, XGBRegressor
 from sklearn.pipeline import make_pipeline
@@ -17,7 +19,7 @@ from sklearn.metrics import (
     mean_squared_error,
     r2_score,
 )
-from sklearn.preprocessing import LabelEncoder, FunctionTransformer
+from sklearn.preprocessing import LabelEncoder, FunctionTransformer, SplineTransformer
 from sklearn.impute import SimpleImputer
 
 
@@ -48,11 +50,25 @@ def get_dataset(dataname):
             return fetch_playground_series(season, episode, return_X_y=True)
 
 
+def datetime_feats(dataf):
+    return dataf.with_columns(
+        day_of_year=pl.col("date").str.to_datetime().dt.ordinal_day()
+    ).select("day_of_year")
+
+
 def get_featurizers(task="classification", mod_name="", elaborate=False):
+    time_pipe = make_pipeline(
+        FunctionTransformer(datetime_feats),
+        SplineTransformer(n_knots=12, extrapolation="periodic")
+    )
     if "ridge" not in mod_name:
         yield "tablevec", TableVectorizer()
+        yield "tablevec-noids", make_pipeline(ColumnDropper(substring='id'), TableVectorizer())
+        yield "tablevec-ts-noids", make_pipeline(ColumnDropper(substring='id'), TableVectorizer(datetime_transformer=time_pipe))
     else:
         yield "tablevec-impute", make_pipeline(TableVectorizer(), SimpleImputer())
+        yield "tablevec-noids-impute", make_pipeline(ColumnDropper(substring='id'), TableVectorizer(), SimpleImputer())
+        yield "tablevec-ts-noids", make_pipeline(ColumnDropper(substring='id'), TableVectorizer(datetime_transformer=time_pipe))
 
 
 def get_estimators(task="classification", elaborate=False):
@@ -82,10 +98,7 @@ def task_generator(task, cache, n_seeds=1, n_splits=5, dry_run=False):
                     for tfm_name, tfm in get_featurizers(
                         task, mod_name, elaborate=False
                     ):
-                        if dry_run:
-                            yield 1
-                        else:
-                            train_hash = make_task_hash(
+                        train_hash = make_task_hash(
                                 task,
                                 dataname,
                                 random_seed,
@@ -94,7 +107,10 @@ def task_generator(task, cache, n_seeds=1, n_splits=5, dry_run=False):
                                 tfm_name,
                                 mod_name,
                             )
-                            if train_hash not in cache:
+                        if train_hash not in cache:
+                            if dry_run:
+                                yield 1
+                            else:
                                 yield {
                                     "task": task,
                                     "dataname": dataname,
