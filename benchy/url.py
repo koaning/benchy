@@ -1,14 +1,16 @@
 import ssl
-import polars as pl 
-from pathlib import Path 
+import polars as pl
+from pathlib import Path
 import urllib.request
 
 
 BENCHY_DIR = Path.home() / ".benchy"
 
 
-def download_and_open_url(url:str, name:str, data_home:Path, force:bool=False, cleanup=lambda d: d):
-    # This is a temporary workaround for mac. 
+def download_and_open_url(
+    url: str, name: str, data_home: Path, force: bool = False, cleanup=lambda d: d
+):
+    # This is a temporary workaround for mac.
     # https://stackoverflow.com/a/28052583
     original = ssl._create_default_https_context
     ssl._create_default_https_context = ssl._create_unverified_context
@@ -32,11 +34,20 @@ def download_and_open_url(url:str, name:str, data_home:Path, force:bool=False, c
 
     # Put back the SSL setting that we had before
     ssl._create_default_https_context = original
-    
+
     # Now that process is back to normal, return parquet file
     return pl.read_parquet(pq_path)
 
-def fetch_url(url, name, data_home=None, return_X_y=False, target_col=None, force=False, cleanup=lambda d: d):
+
+def fetch_url(
+    url,
+    name,
+    data_home=None,
+    return_X_y=False,
+    target_col=None,
+    force=False,
+    cleanup=lambda d: d,
+):
     data_home = BENCHY_DIR if not data_home else data_home
     df = download_and_open_url(url, name, data_home, force, cleanup=cleanup)
     if return_X_y:
