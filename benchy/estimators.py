@@ -9,4 +9,10 @@ class ColumnDropper(BaseEstimator, TransformerMixin):
         return self
     
     def transform(self, X, y=None): 
-        return X.select(*self.cols)
+        return X.select(*self.cols_)
+
+
+class DateFeatures(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        pass
+    

@@ -1,13 +1,14 @@
 import polars as pl
 from sklearn.model_selection import KFold
-from skrub import TableVectorizer
+from skrub import TableVectorizer, SelectCols
 import time
 
 from benchy.kaggle import METADATA, fetch_playground_series
 from benchy.estimators import ColumnDropper
 from lightgbm import LGBMClassifier, LGBMRegressor
 from xgboost import XGBClassifier, XGBRegressor
-from sklearn.pipeline import make_pipeline
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import make_pipeline, make_union
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.ensemble import (
     HistGradientBoostingClassifier,
@@ -56,19 +57,38 @@ def datetime_feats(dataf):
     ).select("day_of_year")
 
 
+class ConditionalDateFeaturizer(BaseEstimator, TransformerMixin):
+    def __init__(self) -> None:
+        self.spline_tfm = SplineTransformer(n_knots=12, extrapolation="periodic")
+    
+    def fit(self, X, y):
+        if 'date' in X.columns:
+            self.pipeline_ = make_union(
+                make_pipeline(
+                    SelectCols('date'),
+                    FunctionTransformer(datetime_feats),
+                    SplineTransformer(n_knots=12, extrapolation="periodic")
+                ),
+                TableVectorizer()
+            )
+        else:
+            self.pipeline_ = TableVectorizer()
+        return self.pipeline_.fit(X, y)
+    
+    def transform(self, X, y=None):
+        return self.pipeline_.transform(X)
+    
 def get_featurizers(task="classification", mod_name="", elaborate=False):
-    time_pipe = make_pipeline(
-        FunctionTransformer(datetime_feats),
-        SplineTransformer(n_knots=12, extrapolation="periodic")
-    )
-    if "ridge" not in mod_name:
+    if "ridge" not in mod_name and task == 'classification':
         yield "tablevec", TableVectorizer()
         yield "tablevec-noids", make_pipeline(ColumnDropper(substring='id'), TableVectorizer())
-        yield "tablevec-ts-noids", make_pipeline(ColumnDropper(substring='id'), TableVectorizer(datetime_transformer=time_pipe))
-    else:
+    elif task == 'regression':
+        yield "tablevec-ts-impute", make_pipeline(
+            ConditionalDateFeaturizer(),
+            SimpleImputer()
+        )
         yield "tablevec-impute", make_pipeline(TableVectorizer(), SimpleImputer())
         yield "tablevec-noids-impute", make_pipeline(ColumnDropper(substring='id'), TableVectorizer(), SimpleImputer())
-        yield "tablevec-ts-noids", make_pipeline(ColumnDropper(substring='id'), TableVectorizer(datetime_transformer=time_pipe))
 
 
 def get_estimators(task="classification", elaborate=False):
