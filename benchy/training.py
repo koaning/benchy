@@ -35,12 +35,12 @@ def calc_scores(task, y_true, y_pred):
         }
 
 
-def get_datasets(task="classification"):
+def get_datasets(task="classification", data_home=None):
     for name, descr in METADATA.items():
         if descr["task"] == task:
             season = int(name.split("e")[0].replace("s", ""))
             episode = int(name.split("e")[1])
-            yield name, fetch_playground_series(season, episode, return_X_y=True)
+            yield name, fetch_playground_series(season, episode, data_home=data_home, return_X_y=True)
 
 
 def get_dataset(dataname):

@@ -25,6 +25,8 @@ METADATA = {
     "s3e2": {"target_col": "stroke", "task": "classification"},
     "s3e1": {"target_col": "MedHouseVal", "task": "regression"},
     "s2e9": {"target_col": "num_sold", "task": "regression"},
+    "s0e1": {"target_col": "Class", "task": "classification"},  # creditcard dataset
+    "s0e2": {"target_col": "sellingprice", "task": "regression"},  # second hand cards dataset
 }
 
 
@@ -58,6 +60,3 @@ def fetch_playground_series(
         force=force,
         cleanup=cleanup,
     )
-
-
-fetch_playground_series(3, 26)

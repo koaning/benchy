@@ -34,7 +34,6 @@ def download_and_open_url(
 
     # Put back the SSL setting that we had before
     ssl._create_default_https_context = original
-
     # Now that process is back to normal, return parquet file
     return pl.read_parquet(pq_path)
 
